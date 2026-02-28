@@ -1,9 +1,10 @@
 
 from flask import Flask, render_template, request, jsonify
-import pickle, re, nltk
+import pickle, re, nltk, os
 from nltk.corpus import stopwords
 
-nltk.download("stopwords", quiet=True)
+nltk.data.path.append("/tmp")
+nltk.download("stopwords", download_dir="/tmp", quiet=True)
 
 app       = Flask(__name__)
 stop_words = set(stopwords.words("english"))
