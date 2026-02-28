@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SMS Spam Detector</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"DM Sans",sans-serif;background:#0d0d1a;color:#fff;min-height:100vh;padding:20px}
+body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at 10% 20%,rgba(114,9,183,0.4) 0%,transparent 55%),radial-gradient(ellipse at 90% 80%,rgba(58,134,255,0.3) 0%,transparent 55%),radial-gradient(ellipse at 80% 10%,rgba(247,37,133,0.3) 0%,transparent 50%);z-index:0}
+.wrapper{position:relative;z-index:1;max-width:600px;margin:0 auto}
+header{text-align:center;margin-bottom:30px;padding-top:20px}
+.badge{display:inline-block;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:999px;padding:5px 15px;font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:14px}
+h1{font-family:"Syne",sans-serif;font-size:32px;font-weight:800;background:linear-gradient(135deg,#fff,#f72585,#3a86ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px}
+.subtitle{color:rgba(255,255,255,0.5);font-size:14px}
+.stats-row{display:flex;gap:10px;margin-bottom:20px}
+.stat{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 10px;text-align:center}
+.stat-num{font-family:"Syne",sans-serif;font-size:24px;font-weight:800}
+.stat:nth-child(1) .stat-num{color:#ffbe0b}
+.stat:nth-child(2) .stat-num{color:#ff4d6d}
+.stat:nth-child(3) .stat-num{color:#06d6a0}
+.stat-lbl{font-size:11px;color:rgba(255,255,255,0.4);margin-top:3px}
+.card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:24px;backdrop-filter:blur(20px);margin-bottom:20px}
+.card-label{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:12px}
+textarea{width:100%;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.1);border-radius:12px;color:#fff;font-family:"DM Sans",sans-serif;font-size:15px;padding:14px;resize:vertical;min-height:100px;outline:none;transition:border-color 0.2s}
+textarea::placeholder{color:rgba(255,255,255,0.25)}
+textarea:focus{border-color:#f72585}
+.char-row{text-align:right;font-size:11px;color:rgba(255,255,255,0.35);margin-top:5px}
+.btn{width:100%;margin-top:14px;padding:15px;border:none;border-radius:12px;font-family:"Syne",sans-serif;font-size:16px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#f72585,#7209b7,#3a86ff);color:#fff;transition:transform 0.15s,box-shadow 0.15s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(247,37,133,0.4)}
+.btn:disabled{opacity:0.6;cursor:not-allowed}
+.result-box{display:none;margin-top:20px;border-radius:16px;padding:24px;text-align:center;border:2px solid transparent;animation:pop 0.4s cubic-bezier(0.34,1.56,0.64,1) both}
+@keyframes pop{from{opacity:0;transform:scale(0.85)}to{opacity:1;transform:scale(1)}}
+.result-box.spam{background:linear-gradient(135deg,rgba(255,77,109,0.2),rgba(247,37,133,0.08));border-color:rgba(255,77,109,0.5)}
+.result-box.ham{background:linear-gradient(135deg,rgba(6,214,160,0.2),rgba(58,134,255,0.08));border-color:rgba(6,214,160,0.5)}
+.result-emoji{font-size:48px;margin-bottom:8px}
+.result-label{font-family:"Syne",sans-serif;font-size:28px;font-weight:800}
+.result-box.spam .result-label{color:#ff4d6d}
+.result-box.ham .result-label{color:#06d6a0}
+.result-sub{font-size:13px;color:rgba(255,255,255,0.5);margin-top:4px}
+.conf-row{display:flex;gap:12px;margin-top:18px}
+.conf-item{flex:1;background:rgba(255,255,255,0.06);border-radius:10px;padding:12px;text-align:left}
+.conf-lbl{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:6px}
+.conf-pct{font-family:"Syne",sans-serif;font-size:22px;font-weight:800}
+.spam-conf .conf-pct{color:#ff4d6d}
+.ham-conf .conf-pct{color:#06d6a0}
+.bar-track{height:5px;background:rgba(255,255,255,0.08);border-radius:999px;margin-top:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:999px;width:0%;transition:width 0.8s ease}
+.spam-conf .bar-fill{background:linear-gradient(90deg,#ff4d6d,#f72585)}
+.ham-conf .bar-fill{background:linear-gradient(90deg,#06d6a0,#3a86ff)}
+.history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.history-title{font-family:"Syne",sans-serif;font-size:16px;font-weight:700}
+.btn-clear{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.5);font-size:12px;padding:5px 12px;cursor:pointer}
+.empty{text-align:center;color:rgba(255,255,255,0.35);font-size:13px;padding:24px 0}
+.hist-item{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.hist-badge{flex-shrink:0;width:60px;text-align:center;border-radius:6px;padding:4px 0;font-family:"Syne",sans-serif;font-size:10px;font-weight:700}
+.hist-badge.spam{background:rgba(255,77,109,0.2);color:#ff4d6d}
+.hist-badge.ham{background:rgba(6,214,160,0.2);color:#06d6a0}
+.hist-msg{flex:1;font-size:13px;color:rgba(255,255,255,0.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-pct{font-family:"Syne",sans-serif;font-size:12px;font-weight:700;color:rgba(255,255,255,0.4)}
+.spinner{display:none;width:20px;height:20px;border:3px solid rgba(255,255,255,0.3);border-top:3px solid #fff;border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+footer{text-align:center;color:rgba(255,255,255,0.25);font-size:12px;margin-top:30px;padding-bottom:30px}
+</style>
+</head>
+<body>
+<div class="wrapper">
+<header>
+<div class="badge">📱 AI Powered · ML Model</div>
+<h1>SMS Spam Detector</h1>
+<p class="subtitle">Type any message — AI will detect if it is spam</p>
+</header>
+<div class="stats-row">
+<div class="stat"><div class="stat-num" id="totalCount">0</div><div class="stat-lbl">Total</div></div>
+<div class="stat"><div class="stat-num" id="spamCount">0</div><div class="stat-lbl">Spam</div></div>
+<div class="stat"><div class="stat-num" id="hamCount">0</div><div class="stat-lbl">Safe</div></div>
+</div>
+<div class="card">
+<div class="card-label">📝 Enter Message</div>
+<textarea id="msgInput" placeholder="Type your SMS message here..." maxlength="500"></textarea>
+<div class="char-row"><span id="charCount">0</span>/500</div>
+<button class="btn" id="checkBtn" onclick="checkSpam()">
+<span id="btnText">🔍 Check Message</span>
+<div class="spinner" id="spinner"></div>
+</button>
+<div class="result-box" id="resultBox">
+<div class="result-emoji" id="resultEmoji"></div>
+<div class="result-label" id="resultLabel"></div>
+<div class="result-sub" id="resultSub"></div>
+<div class="conf-row">
+<div class="conf-item spam-conf">
+<div class="conf-lbl">🔴 Spam</div>
+<div class="conf-pct" id="spamPct">0%</div>
+<div class="bar-track"><div class="bar-fill" id="spamBar"></div></div>
+</div>
+<div class="conf-item ham-conf">
+<div class="conf-lbl">🟢 Safe</div>
+<div class="conf-pct" id="hamPct">0%</div>
+<div class="bar-track"><div class="bar-fill" id="hamBar"></div></div>
+</div>
+</div>
+</div>
+</div>
+<div class="card">
+<div class="history-header">
+<div class="history-title">🕘 Recent History</div>
+<button class="btn-clear" onclick="clearHistory()">Clear</button>
+</div>
+<div id="historyList"><div class="empty">No predictions yet!</div></div>
+</div>
+<footer>Parikshith Y M · B.E. Computer Science and Engineering · Final Year Project</footer>
+</div>
+<script>
+let total=0,spam=0,ham=0,history=[];
+document.getElementById("msgInput").addEventListener("input",function(){
+document.getElementById("charCount").textContent=this.value.length;
+});
+async function checkSpam(){
+const msg=document.getElementById("msgInput").value.trim();
+if(!msg){alert("Please enter a message!");return;}
+setLoading(true);
+try{
+const res=await fetch("/predict",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})});
+const data=await res.json();
+showResult(data);
+addHistory(data);
+updateStats(data.is_spam);
+}catch(e){alert("Error connecting to server!");}
+setLoading(false);
+}
+function showResult(data){
+const box=document.getElementById("resultBox");
+if(data.is_spam){
+box.className="result-box spam";
+document.getElementById("resultEmoji").textContent="🚨";
+document.getElementById("resultLabel").textContent="SPAM DETECTED";
+document.getElementById("resultSub").textContent="This message looks like spam!";
+}else{
+box.className="result-box ham";
+document.getElementById("resultEmoji").textContent="✅";
+document.getElementById("resultLabel").textContent="NOT SPAM";
+document.getElementById("resultSub").textContent="This message is safe!";
+}
+document.getElementById("spamPct").textContent=data.spam_pct+"%";
+document.getElementById("hamPct").textContent=data.ham_pct+"%";
+box.style.display="block";
+setTimeout(function(){
+document.getElementById("spamBar").style.width=data.spam_pct+"%";
+document.getElementById("hamBar").style.width=data.ham_pct+"%";
+},100);
+}
+function addHistory(data){
+history.unshift(data);
+if(history.length>8)history.pop();
+const list=document.getElementById("historyList");
+list.innerHTML=history.map(function(item){
+return "<div class='hist-item'><div class='hist-badge "+(item.is_spam?"spam":"ham")+"'>"+(item.is_spam?"🔴 SPAM":"🟢 SAFE")+"</div><div class='hist-msg'>"+item.message.substring(0,50)+(item.message.length>50?"...":"")+"</div><div class='hist-pct'>"+item.spam_pct+"%</div></div>";
+}).join("");
+}
+function clearHistory(){
+history=[];
+document.getElementById("historyList").innerHTML="<div class='empty'>No predictions yet!</div>";
+}
+function updateStats(isSpam){
+total++;
+if(isSpam)spam++;else ham++;
+document.getElementById("totalCount").textContent=total;
+document.getElementById("spamCount").textContent=spam;
+document.getElementById("hamCount").textContent=ham;
+}
+function setLoading(on){
+document.getElementById("checkBtn").disabled=on;
+document.getElementById("btnText").style.display=on?"none":"inline";
+document.getElementById("spinner").style.display=on?"block":"none";
+}
+</script>
+</body>
+</html>
